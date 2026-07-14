@@ -1,4 +1,4 @@
-import type { PlayerRoundScore } from './score';
+import type { RoundScore } from './score';
 
 export type ClosingVariant =
   | 'normal'
@@ -8,7 +8,7 @@ export type ClosingVariant =
 export type Round = {
   id: string;
   number: number;
-  scores: PlayerRoundScore[];
+  scores: RoundScore[];
   closedByPlayerId: string;
   closingVariant: ClosingVariant;
   createdAt: string;

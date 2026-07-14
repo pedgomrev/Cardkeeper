@@ -1,6 +1,6 @@
 export const GAME_TYPES = {
   CONTINENTAL: 'continental',
-  MAUMAU: 'maumau',
+  //MAUMAU: 'maumau',
 } as const;
 
 export type GameType =
@@ -11,7 +11,7 @@ export type ContinentalSettings = {
 };
 
 export type MauMauSettings = {
-  type: typeof GAME_TYPES.MAUMAU;
+  //type: typeof GAME_TYPES.MAUMAU;
   scoreLimit: number;
 };
 
