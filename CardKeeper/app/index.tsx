@@ -19,7 +19,7 @@ export default function HomeScreen() {
   }
 
   function handleHistory(): void {
-    console.log('Historial');
+    router.push('/history');
   }
 
   return (

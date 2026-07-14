@@ -1,13 +1,3 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-
 import { GameSelectionCard } from '@/components/game/GameSelectionCard';
 import { PlayerFormRow } from '@/components/player/PlayerFormRow';
 import { GameRulesCard } from '@/components/rules/GameRulesCard';
@@ -23,6 +13,16 @@ import {
 import { useGameContext } from '@/contexts/GameContext';
 import { continentalDefinition } from '@/games/continental/definition';
 import { createContinentalGame } from '@/services/createGame';
+import { gameRepository } from '@/storage/AsyncStorageGameRepository';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 type PlayerFormValue = {
   id: string;
@@ -114,7 +114,7 @@ export default function NewGameScreen() {
     );
   }
 
-function handleStartGame(): void {
+async function handleStartGame(): Promise<void> {
   if (hasEmptyNames) {
     Alert.alert(
       'Faltan jugadores',
@@ -141,12 +141,25 @@ function handleStartGame(): void {
 
     return;
   }
+
   const createdGame = createContinentalGame({
-  playerNames: players.map((player) => player.name),
+    playerNames: players.map(
+      (player) => player.name,
+    ),
   });
 
-  setActiveGame(createdGame);
-  router.replace('/game');
+  try {
+    await gameRepository.save(createdGame);
+
+    setActiveGame(createdGame);
+
+    router.replace('/game');
+  } catch {
+    Alert.alert(
+      'No se pudo crear la partida',
+      'Ha ocurrido un error al guardar la partida.',
+    );
+  }
 }
 
   return (

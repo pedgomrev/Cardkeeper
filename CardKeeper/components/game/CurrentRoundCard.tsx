@@ -1,19 +1,19 @@
 import {
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 import {
-    colors,
-    fontSize,
-    radius,
-    spacing,
+  colors,
+  fontSize,
+  radius,
+  spacing,
 } from '@/constants/theme';
 import type {
-    ClosingVariant,
-    Player,
+  ClosingVariant,
+  Player,
 } from '@/models';
 
 import { AppCard } from '../ui/AppCard';
@@ -38,7 +38,7 @@ type CurrentRoundCardProps = {
     playerId: string,
     value: string,
   ) => void;
-  onSaveRound: () => void;
+  onSaveRound: () => void | Promise<void>;
 };
 
 export function CurrentRoundCard({

@@ -11,15 +11,14 @@ import {
     calculateContinentalPlayerTotal,
     calculateContinentalRanking,
 } from '@/games/continental/scoring';
-import type {
-    RankingEntry,
-} from '@/games/core/GameEngine';
+import type { RankingEntry } from '@/games/core/GameEngine';
 import type {
     ClosingVariant,
     Game,
     Round,
 } from '@/models';
 import { addRound } from '@/services/addRound';
+import { gameRepository } from '@/storage/AsyncStorageGameRepository';
 import { generateId } from '@/utils/generateId';
 
 type ScoreFormState = Record<string, string>;
@@ -42,6 +41,7 @@ type EmptyContinentalGameState = {
   scores: ScoreFormState;
   totalRounds: number;
   isFinished: false;
+  isSavingRound: boolean;
   handleSelectClosingPlayer: (
     playerId: string,
   ) => void;
@@ -52,7 +52,7 @@ type EmptyContinentalGameState = {
     playerId: string,
     value: string,
   ) => void;
-  handleSaveRound: () => void;
+  handleSaveRound: () => Promise<void>;
 };
 
 type ActiveContinentalGameState = {
@@ -69,6 +69,7 @@ type ActiveContinentalGameState = {
   scores: ScoreFormState;
   totalRounds: number;
   isFinished: boolean;
+  isSavingRound: boolean;
   handleSelectClosingPlayer: (
     playerId: string,
   ) => void;
@@ -79,7 +80,7 @@ type ActiveContinentalGameState = {
     playerId: string,
     value: string,
   ) => void;
-  handleSaveRound: () => void;
+  handleSaveRound: () => Promise<void>;
 };
 
 export type ContinentalGameState =
@@ -100,6 +101,9 @@ export function useContinentalGame(): ContinentalGameState {
 
   const [scores, setScores] =
     useState<ScoreFormState>({});
+
+  const [isSavingRound, setIsSavingRound] =
+    useState(false);
 
   function handleSelectClosingPlayer(
     playerId: string,
@@ -141,10 +145,11 @@ export function useContinentalGame(): ContinentalGameState {
       scores,
       totalRounds: CONTINENTAL_TOTAL_ROUNDS,
       isFinished: false,
+      isSavingRound,
       handleSelectClosingPlayer,
       handleClosingVariantChange,
       handleScoreChange,
-      handleSaveRound: () => {
+      handleSaveRound: async () => {
         Alert.alert(
           'No hay partida activa',
           'Crea una partida antes de registrar rondas.',
@@ -178,7 +183,11 @@ export function useContinentalGame(): ContinentalGameState {
     setScores({});
   }
 
-  function handleSaveRound(): void {
+  async function handleSaveRound(): Promise<void> {
+    if (isSavingRound) {
+      return;
+    }
+
     if (!currentRoundRule) {
       Alert.alert(
         'Partida terminada',
@@ -240,11 +249,15 @@ export function useContinentalGame(): ContinentalGameState {
       })),
     };
 
+    setIsSavingRound(true);
+
     try {
       const updatedGame = addRound(
         game,
         round,
       );
+
+      await gameRepository.save(updatedGame);
 
       updateActiveGame(updatedGame);
       resetRoundForm();
@@ -262,6 +275,8 @@ export function useContinentalGame(): ContinentalGameState {
         'Ronda no válida',
         message,
       );
+    } finally {
+      setIsSavingRound(false);
     }
   }
 
@@ -277,6 +292,7 @@ export function useContinentalGame(): ContinentalGameState {
     scores,
     totalRounds: CONTINENTAL_TOTAL_ROUNDS,
     isFinished: game.status === 'finished',
+    isSavingRound,
     handleSelectClosingPlayer,
     handleClosingVariantChange,
     handleScoreChange,
