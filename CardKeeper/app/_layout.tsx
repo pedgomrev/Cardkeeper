@@ -1,11 +1,19 @@
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+
+import { GameProvider } from '@/contexts/GameContext';
 
 export default function RootLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <GameProvider>
+      <StatusBar style="dark" />
+
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+    </GameProvider>
   );
 }

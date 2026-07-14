@@ -86,3 +86,26 @@ export function getContinentalRoundRule(
     (round) => round.number === roundNumber,
   );
 }
+export function formatContinentalRoundLabel(
+  roundNumber: number,
+): string {
+  const rule = getContinentalRoundRule(roundNumber);
+
+  if (!rule) {
+    return '';
+  }
+
+  return rule.combinations
+    .map(({ type, amount }) => {
+      if (type === 'trio') {
+        return `${amount} ${
+          amount === 1 ? 'trío' : 'tríos'
+        }`;
+      }
+
+      return `${amount} ${
+        amount === 1 ? 'escalera' : 'escaleras'
+      }`;
+    })
+    .join(' y ');
+}
