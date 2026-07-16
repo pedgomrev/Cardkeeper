@@ -5,10 +5,8 @@ import {
   View,
 } from 'react-native';
 
-import { CurrentRoundCard } from '@/components/game/CurrentRoundCard';
-import { GameHeader } from '@/components/game/GameHeader';
-import { RankingCard } from '@/components/game/RankingCard';
-import { RoundHistory } from '@/components/game/RoundHistory';
+import { ContinentalGameScreen } from '@/components/games/ContinentalGameScreen';
+import { MauMauGameScreen } from '@/components/games/MauMauGameScreen';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import {
@@ -16,12 +14,13 @@ import {
   fontSize,
   spacing,
 } from '@/constants/theme';
-import { useContinentalGame } from '@/hooks/useContinentalGame';
+import { useGameContext } from '@/contexts/GameContext';
+import { GAME_TYPES } from '@/games/core/types';
 
 export default function GameScreen() {
-  const game = useContinentalGame();
+  const { activeGame } = useGameContext();
 
-  if (!game.activeGame) {
+  if (!activeGame) {
     return (
       <ScreenContainer>
         <View style={styles.emptyContainer}>
@@ -40,76 +39,16 @@ export default function GameScreen() {
     );
   }
 
-  return (
-    <ScreenContainer scrollable>
-      <GameHeader
-        gameName="Continental"
-        playerCount={
-          game.activeGame.players.length
-        }
-      />
+  switch (activeGame.gameType) {
+    case GAME_TYPES.CONTINENTAL:
+      return <ContinentalGameScreen />;
 
-      <View style={styles.content}>
-        {game.currentRoundRule &&
-          !game.isFinished && (
-            <CurrentRoundCard
-              roundNumber={
-                game.currentRoundNumber
-              }
-              totalRounds={game.totalRounds}
-              roundLabel={
-                game.currentRoundLabel
-              }
-              cardsDealt={
-                game.currentRoundRule.cardsDealt
-              }
-              closingScore={
-                game.currentRoundRule.closingScore
-              }
-              players={
-                game.activeGame.players
-              }
-              closingPlayerId={
-                game.closingPlayerId
-              }
-              scores={game.scores}
-              onSelectClosingPlayer={
-                game.handleSelectClosingPlayer
-              }
-              onScoreChange={
-                game.handleScoreChange
-              }
-              onSaveRound={
-                game.handleSaveRound
-              }
-              closingVariant={
-                game.closingVariant
-              }
-              onClosingVariantChange={
-                game.handleClosingVariantChange
-              }
-            />
-          )}
-
-        <RankingCard
-          players={game.activeGame.players}
-          ranking={game.ranking}
-        />
-
-        <RoundHistory
-          players={game.activeGame.players}
-          items={game.historyItems}
-        />
-      </View>
-    </ScreenContainer>
-  );
+    case GAME_TYPES.MAUMAU:
+      return <MauMauGameScreen />;
+  }
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: spacing.xl,
-  },
-
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',

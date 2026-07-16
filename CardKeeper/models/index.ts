@@ -8,3 +8,9 @@ export type {
 } from './round';
 export type { RoundScore } from './score';
 
+export type {
+    AppStatistics,
+    GameTypeStatistics,
+    PlayerGameStatistics,
+    PlayerStatistics
+} from './statistics';

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Pressable,
     StyleSheet,
     Text,
@@ -16,10 +17,13 @@ import {
     fontSize,
     spacing,
 } from '@/constants/theme';
+import { useGameContext } from '@/contexts/GameContext';
 import type { Game } from '@/models';
-import { gameRepository } from '@/storage/AsyncStorageGameRepository';
+import { gameService } from '@/services/gameService';
 
 export default function HistoryScreen() {
+  const { setActiveGame } = useGameContext();
+
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,20 +36,17 @@ export default function HistoryScreen() {
 
         try {
           const storedGames =
-            await gameRepository.findAll();
-
-          const sortedGames = [...storedGames].sort(
-            (firstGame, secondGame) =>
-              new Date(
-                secondGame.updatedAt,
-              ).getTime() -
-              new Date(
-                firstGame.updatedAt,
-              ).getTime(),
-          );
+            await gameService.getAllGames();
 
           if (mounted) {
-            setGames(sortedGames);
+            setGames(storedGames);
+          }
+        } catch {
+          if (mounted) {
+            Alert.alert(
+              'No se pudo cargar el historial',
+              'Ha ocurrido un error al recuperar las partidas guardadas.',
+            );
           }
         } finally {
           if (mounted) {
@@ -62,11 +63,28 @@ export default function HistoryScreen() {
     }, []),
   );
 
+  function handleGamePress(game: Game): void {
+    if (game.status === 'in_progress') {
+      setActiveGame(game);
+      router.push('/game');
+
+      return;
+    }
+
+    router.push({
+      pathname: '/history/[gameId]',
+      params: {
+        gameId: game.id,
+      },
+    });
+  }
+
   return (
     <ScreenContainer scrollable>
       <View style={styles.header}>
         <Pressable
           accessibilityLabel="Volver"
+          accessibilityRole="button"
           hitSlop={12}
           onPress={() => router.back()}
           style={({ pressed }) => [
@@ -77,13 +95,13 @@ export default function HistoryScreen() {
           <Text style={styles.backIcon}>‹</Text>
         </Pressable>
 
-        <View>
+        <View style={styles.headerText}>
           <Text style={styles.title}>
             Historial
           </Text>
 
           <Text style={styles.subtitle}>
-            Consulta tus partidas anteriores.
+            Consulta o continúa tus partidas guardadas.
           </Text>
         </View>
       </View>
@@ -94,17 +112,24 @@ export default function HistoryScreen() {
             color={colors.primary}
             size="large"
           />
+
+          <Text style={styles.loadingText}>
+            Cargando partidas...
+          </Text>
         </View>
       ) : games.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🃏</Text>
+          <Text style={styles.emptyIcon}>
+            🃏
+          </Text>
 
           <Text style={styles.emptyTitle}>
             Todavía no hay partidas
           </Text>
 
           <Text style={styles.emptyText}>
-            Las partidas que crees aparecerán aquí.
+            Las partidas que crees aparecerán aquí,
+            incluso aunque cierres la aplicación.
           </Text>
         </View>
       ) : (
@@ -114,12 +139,7 @@ export default function HistoryScreen() {
               key={game.id}
               game={game}
               onPress={() =>
-                router.push({
-                  pathname: '/history/[gameId]',
-                  params: {
-                    gameId: game.id,
-                  },
-                })
+                handleGamePress(game)
               }
             />
           ))}
@@ -143,6 +163,7 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 22,
   },
 
   pressed: {
@@ -155,6 +176,11 @@ const styles = StyleSheet.create({
     lineHeight: 42,
   },
 
+  headerText: {
+    flex: 1,
+    paddingTop: spacing.xs,
+  },
+
   title: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
@@ -165,12 +191,19 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    lineHeight: 20,
   },
 
   centered: {
     minHeight: 300,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  loadingText: {
+    marginTop: spacing.md,
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
   },
 
   emptyState: {

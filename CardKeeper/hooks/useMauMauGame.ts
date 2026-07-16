@@ -2,20 +2,22 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { useGameContext } from '@/contexts/GameContext';
-import {
-  CONTINENTAL_TOTAL_ROUNDS,
-  formatContinentalRoundLabel,
-  getContinentalRoundRule,
-} from '@/games/continental/rules';
-import {
-  calculateContinentalPlayerTotal,
-  calculateContinentalRanking,
-} from '@/games/continental/scoring';
 import type { RankingEntry } from '@/games/core/GameEngine';
+import {
+    getMauMauClosingScore,
+    getMauMauRoundLabel,
+    getNextMauMauRoundNumber,
+    type MauMauClosingVariant,
+} from '@/games/maumau/rules';
+import {
+    calculateMauMauPlayerTotal,
+    calculateMauMauRanking,
+    getActiveMauMauPlayerIds,
+} from '@/games/maumau/scoring';
 import type {
-  ClosingVariant,
-  Game,
-  Round,
+    Game,
+    Player,
+    Round,
 } from '@/models';
 import { addRound } from '@/services/addRound';
 import { gameService } from '@/services/gameService';
@@ -23,30 +25,31 @@ import { generateId } from '@/utils/generateId';
 
 type ScoreFormState = Record<string, string>;
 
-export type ContinentalRoundHistoryItem = {
+export type MauMauRoundHistoryItem = {
   round: Round;
   roundLabel: string;
   accumulatedTotals: Record<string, number>;
 };
 
-type EmptyContinentalGameState = {
+type EmptyMauMauGameState = {
   activeGame: null;
+  activePlayers: Player[];
   currentRoundNumber: number;
-  currentRoundRule: undefined;
   currentRoundLabel: string;
   ranking: RankingEntry[];
-  historyItems: ContinentalRoundHistoryItem[];
+  historyItems: MauMauRoundHistoryItem[];
   closingPlayerId: string | null;
-  closingVariant: ClosingVariant;
+  closingVariant: MauMauClosingVariant;
+  closingScore: number;
+  scoreLimit: number;
   scores: ScoreFormState;
-  totalRounds: number;
   isFinished: false;
   isSavingRound: boolean;
   handleSelectClosingPlayer: (
     playerId: string,
   ) => void;
   handleClosingVariantChange: (
-    variant: ClosingVariant,
+    variant: MauMauClosingVariant,
   ) => void;
   handleScoreChange: (
     playerId: string,
@@ -55,26 +58,25 @@ type EmptyContinentalGameState = {
   handleSaveRound: () => Promise<void>;
 };
 
-type ActiveContinentalGameState = {
+type ActiveMauMauGameState = {
   activeGame: Game;
+  activePlayers: Player[];
   currentRoundNumber: number;
-  currentRoundRule: ReturnType<
-    typeof getContinentalRoundRule
-  >;
   currentRoundLabel: string;
   ranking: RankingEntry[];
-  historyItems: ContinentalRoundHistoryItem[];
+  historyItems: MauMauRoundHistoryItem[];
   closingPlayerId: string | null;
-  closingVariant: ClosingVariant;
+  closingVariant: MauMauClosingVariant;
+  closingScore: number;
+  scoreLimit: number;
   scores: ScoreFormState;
-  totalRounds: number;
   isFinished: boolean;
   isSavingRound: boolean;
   handleSelectClosingPlayer: (
     playerId: string,
   ) => void;
   handleClosingVariantChange: (
-    variant: ClosingVariant,
+    variant: MauMauClosingVariant,
   ) => void;
   handleScoreChange: (
     playerId: string,
@@ -83,11 +85,11 @@ type ActiveContinentalGameState = {
   handleSaveRound: () => Promise<void>;
 };
 
-export type ContinentalGameState =
-  | EmptyContinentalGameState
-  | ActiveContinentalGameState;
+export type MauMauGameState =
+  | EmptyMauMauGameState
+  | ActiveMauMauGameState;
 
-export function useContinentalGame(): ContinentalGameState {
+export function useMauMauGame(): MauMauGameState {
   const {
     activeGame,
     updateActiveGame,
@@ -97,13 +99,16 @@ export function useContinentalGame(): ContinentalGameState {
     useState<string | null>(null);
 
   const [closingVariant, setClosingVariant] =
-    useState<ClosingVariant>('normal');
+    useState<MauMauClosingVariant>('normal');
 
   const [scores, setScores] =
     useState<ScoreFormState>({});
 
   const [isSavingRound, setIsSavingRound] =
     useState(false);
+
+  const closingScore =
+    getMauMauClosingScore(closingVariant);
 
   function handleSelectClosingPlayer(
     playerId: string,
@@ -112,7 +117,7 @@ export function useContinentalGame(): ContinentalGameState {
   }
 
   function handleClosingVariantChange(
-    variant: ClosingVariant,
+    variant: MauMauClosingVariant,
   ): void {
     setClosingVariant(variant);
   }
@@ -132,18 +137,23 @@ export function useContinentalGame(): ContinentalGameState {
     }));
   }
 
-  if (!activeGame) {
+  if (
+    !activeGame ||
+    activeGame.gameType !== 'maumau' ||
+    activeGame.settings.type !== 'maumau'
+  ) {
     return {
       activeGame: null,
+      activePlayers: [],
       currentRoundNumber: 1,
-      currentRoundRule: undefined,
-      currentRoundLabel: '',
+      currentRoundLabel: 'Ronda 1',
       ranking: [],
       historyItems: [],
       closingPlayerId,
       closingVariant,
+      closingScore,
+      scoreLimit: 100,
       scores,
-      totalRounds: CONTINENTAL_TOTAL_ROUNDS,
       isFinished: false,
       isSavingRound,
       handleSelectClosingPlayer,
@@ -152,30 +162,36 @@ export function useContinentalGame(): ContinentalGameState {
       handleSaveRound: async () => {
         Alert.alert(
           'No hay partida activa',
-          'Crea o carga una partida antes de registrar rondas.',
+          'Crea o carga una partida de MauMau.',
         );
       },
     };
   }
 
   const game: Game = activeGame;
+  const scoreLimit = activeGame.settings.scoreLimit;
 
   const currentRoundNumber =
-    game.rounds.length + 1;
-
-  const currentRoundRule =
-    getContinentalRoundRule(currentRoundNumber);
-
-  const currentRoundLabel =
-    formatContinentalRoundLabel(
-      currentRoundNumber,
+    getNextMauMauRoundNumber(
+      game.rounds.length,
     );
 
+  const currentRoundLabel =
+    getMauMauRoundLabel(currentRoundNumber);
+
+  const activePlayerIds =
+    getActiveMauMauPlayerIds(game);
+
+  const activePlayers = game.players.filter(
+    (player) =>
+      activePlayerIds.includes(player.id),
+  );
+
   const ranking =
-    calculateContinentalRanking(game);
+    calculateMauMauRanking(game);
 
   const historyItems =
-    createContinentalHistoryItems(game);
+    createMauMauHistoryItems(game);
 
   function resetRoundForm(): void {
     setClosingPlayerId(null);
@@ -188,10 +204,10 @@ export function useContinentalGame(): ContinentalGameState {
       return;
     }
 
-    if (!currentRoundRule) {
+    if (game.status === 'finished') {
       Alert.alert(
         'Partida terminada',
-        'Ya se han registrado las siete rondas.',
+        'Esta partida ya ha finalizado.',
       );
 
       return;
@@ -207,28 +223,29 @@ export function useContinentalGame(): ContinentalGameState {
     }
 
     if (
-      closingVariant === 'continental' &&
-      currentRoundNumber !==
-        CONTINENTAL_TOTAL_ROUNDS
+      !activePlayerIds.includes(
+        closingPlayerId,
+      )
     ) {
       Alert.alert(
-        'Cierre no válido',
-        'Solo se puede conseguir un Continental en la séptima ronda.',
+        'Jugador no válido',
+        'Un jugador eliminado no puede cerrar la ronda.',
       );
 
       return;
     }
 
-    const hasEmptyScores = game.players.some(
-      (player) =>
-        player.id !== closingPlayerId &&
-        !scores[player.id]?.trim(),
-    );
+    const hasEmptyScores =
+      activePlayers.some(
+        (player) =>
+          player.id !== closingPlayerId &&
+          !scores[player.id]?.trim(),
+      );
 
     if (hasEmptyScores) {
       Alert.alert(
         'Faltan puntuaciones',
-        'Introduce la puntuación de todos los jugadores.',
+        'Introduce la puntuación de todos los jugadores activos.',
       );
 
       return;
@@ -240,11 +257,11 @@ export function useContinentalGame(): ContinentalGameState {
       closedByPlayerId: closingPlayerId,
       closingVariant,
       createdAt: new Date().toISOString(),
-      scores: game.players.map((player) => ({
+      scores: activePlayers.map((player) => ({
         playerId: player.id,
         points:
           player.id === closingPlayerId
-            ? currentRoundRule.closingScore
+            ? closingScore
             : Number(scores[player.id]),
       })),
     };
@@ -261,6 +278,11 @@ export function useContinentalGame(): ContinentalGameState {
 
       updateActiveGame(updatedGame);
       resetRoundForm();
+
+      showEliminatedPlayersAlert(
+        game,
+        updatedGame,
+      );
 
       if (updatedGame.status === 'finished') {
         showFinishedGameAlert(updatedGame);
@@ -282,16 +304,18 @@ export function useContinentalGame(): ContinentalGameState {
 
   return {
     activeGame: game,
+    activePlayers,
     currentRoundNumber,
-    currentRoundRule,
     currentRoundLabel,
     ranking,
     historyItems,
     closingPlayerId,
     closingVariant,
+    closingScore,
+    scoreLimit,
     scores,
-    totalRounds: CONTINENTAL_TOTAL_ROUNDS,
-    isFinished: game.status === 'finished',
+    isFinished:
+      game.status === 'finished',
     isSavingRound,
     handleSelectClosingPlayer,
     handleClosingVariantChange,
@@ -300,18 +324,18 @@ export function useContinentalGame(): ContinentalGameState {
   };
 }
 
-function createContinentalHistoryItems(
+function createMauMauHistoryItems(
   game: Game,
-): ContinentalRoundHistoryItem[] {
+): MauMauRoundHistoryItem[] {
   return game.rounds.map((round, index) => ({
     round,
-    roundLabel: formatContinentalRoundLabel(
+    roundLabel: getMauMauRoundLabel(
       round.number,
     ),
     accumulatedTotals: Object.fromEntries(
       game.players.map((player) => [
         player.id,
-        calculateContinentalPlayerTotal(
+        calculateMauMauPlayerTotal(
           player.id,
           game.rounds.slice(0, index + 1),
         ),
@@ -320,56 +344,66 @@ function createContinentalHistoryItems(
   }));
 }
 
+function showEliminatedPlayersAlert(
+  previousGame: Game,
+  updatedGame: Game,
+): void {
+  const previouslyActiveIds =
+    getActiveMauMauPlayerIds(previousGame);
+
+  const currentlyActiveIds =
+    getActiveMauMauPlayerIds(updatedGame);
+
+  const newlyEliminatedNames =
+    previousGame.players
+      .filter(
+        (player) =>
+          previouslyActiveIds.includes(
+            player.id,
+          ) &&
+          !currentlyActiveIds.includes(
+            player.id,
+          ),
+      )
+      .map((player) => player.name);
+
+  if (
+    newlyEliminatedNames.length > 0 &&
+    updatedGame.status !== 'finished'
+  ) {
+    Alert.alert(
+      'Jugador eliminado',
+      newlyEliminatedNames.length === 1
+        ? `${newlyEliminatedNames[0]} ha alcanzado el límite de puntos.`
+        : `${newlyEliminatedNames.join(
+            ', ',
+          )} han alcanzado el límite de puntos.`,
+    );
+  }
+}
+
 function showFinishedGameAlert(
   game: Game,
 ): void {
-  const continentalRound = game.rounds.find(
-    (round) =>
-      round.closingVariant === 'continental',
-  );
-
-  if (continentalRound) {
-    const winner = game.players.find(
-      (player) =>
-        player.id ===
-        continentalRound.closedByPlayerId,
-    );
-
-    Alert.alert(
-      '¡Continental!',
-      winner
-        ? `${winner.name} gana la partida automáticamente.`
-        : 'La partida termina con un Continental.',
-    );
-
-    return;
-  }
-
-  const winnerNames = game.winnerPlayerIds
-    ?.map((winnerId) =>
-      game.players.find(
-        (player) => player.id === winnerId,
-      )?.name,
-    )
-    .filter(
-      (name): name is string =>
-        Boolean(name),
-    );
+  const winnerNames =
+    game.winnerPlayerIds
+      ?.map((winnerId) =>
+        game.players.find(
+          (player) =>
+            player.id === winnerId,
+        )?.name,
+      )
+      .filter(
+        (name): name is string =>
+          Boolean(name),
+      ) ?? [];
 
   Alert.alert(
     'Partida terminada',
-    winnerNames?.length
-      ? formatWinnerMessage(winnerNames)
-      : 'Se han completado las siete rondas.',
+    winnerNames.length === 1
+      ? `Ganador: ${winnerNames[0]}`
+      : `Empate entre: ${winnerNames.join(
+          ', ',
+        )}`,
   );
-}
-
-function formatWinnerMessage(
-  winnerNames: string[],
-): string {
-  if (winnerNames.length === 1) {
-    return `Ganador: ${winnerNames[0]}`;
-  }
-
-  return `Empate entre: ${winnerNames.join(', ')}`;
 }

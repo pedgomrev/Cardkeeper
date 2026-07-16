@@ -1,5 +1,11 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -8,14 +14,50 @@ import {
   fontSize,
   spacing,
 } from '@/constants/theme';
-
+import { useGameContext } from '@/contexts/GameContext';
+import { gameService } from '@/services/gameService';
 export default function HomeScreen() {
+  const { setActiveGame } = useGameContext();
+
+  const [isLoadingActiveGame, setIsLoadingActiveGame] =
+    useState(false);
+
   function handleNewGame(): void {
     router.push('/new-game');
   }
+function handleStatistics(): void {
+  router.push('/statistics');
+}
+  async function handleContinueGame(): Promise<void> {
+    if (isLoadingActiveGame) {
+      return;
+    }
 
-  function handleContinueGame(): void {
-    console.log('Continuar partida');
+    setIsLoadingActiveGame(true);
+
+    try {
+      const activeGame =
+        await gameService.getActiveGame();
+
+      if (!activeGame) {
+        Alert.alert(
+          'No hay partidas en curso',
+          'Crea una nueva partida para empezar a jugar.',
+        );
+
+        return;
+      }
+
+      setActiveGame(activeGame);
+      router.push('/game');
+    } catch {
+      Alert.alert(
+        'No se pudo cargar la partida',
+        'Ha ocurrido un error al recuperar la partida guardada.',
+      );
+    } finally {
+      setIsLoadingActiveGame(false);
+    }
   }
 
   function handleHistory(): void {
@@ -30,11 +72,13 @@ export default function HomeScreen() {
             <Text style={styles.logoIcon}>♠</Text>
           </View>
 
-          <Text style={styles.title}>CardKeeper</Text>
+          <Text style={styles.title}>
+            CardKeeper
+          </Text>
 
           <Text style={styles.subtitle}>
-            Gestiona tus partidas de cartas y olvídate de
-            apuntar los puntos en papel.
+            Gestiona tus partidas de cartas y
+            olvídate de apuntar los puntos en papel.
           </Text>
         </View>
 
@@ -45,13 +89,24 @@ export default function HomeScreen() {
           />
 
           <PrimaryButton
-            label="Continuar partida"
-            onPress={handleContinueGame}
+            label={
+              isLoadingActiveGame
+                ? 'Cargando partida...'
+                : 'Continuar partida'
+            }
+            onPress={() => {
+              void handleContinueGame();
+            }}
           />
 
           <PrimaryButton
             label="Historial"
             onPress={handleHistory}
+          />
+
+          <PrimaryButton
+            label="Estadísticas"
+            onPress={handleStatistics}
           />
         </View>
       </View>
@@ -63,7 +118,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
   },

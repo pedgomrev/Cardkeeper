@@ -1,30 +1,30 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 import { RankingCard } from '@/components/game/RankingCard';
 import { RoundHistory } from '@/components/game/RoundHistory';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import {
-    colors,
-    fontSize,
-    spacing,
+  colors,
+  fontSize,
+  spacing,
 } from '@/constants/theme';
 import {
-    formatContinentalRoundLabel,
+  formatContinentalRoundLabel,
 } from '@/games/continental/rules';
 import {
-    calculateContinentalPlayerTotal,
-    calculateContinentalRanking,
+  calculateContinentalPlayerTotal,
+  calculateContinentalRanking,
 } from '@/games/continental/scoring';
 import type { Game } from '@/models';
-import { gameRepository } from '@/storage/AsyncStorageGameRepository';
+import { gameService } from '@/services/gameService';
 
 export default function HistoryDetailScreen() {
   const { gameId } = useLocalSearchParams<{
@@ -45,7 +45,7 @@ export default function HistoryDetailScreen() {
       }
 
       const storedGame =
-        await gameRepository.findById(gameId);
+        await gameService.getGameById(gameId);
 
       setGame(storedGame);
       setLoading(false);
