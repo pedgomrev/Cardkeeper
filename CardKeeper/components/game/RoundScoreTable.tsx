@@ -1,16 +1,16 @@
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-
-import {
   colors,
   fontSize,
   spacing,
 } from '@/constants/theme';
 import type { Player, Round } from '@/models';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SCORE_TABLE_COLUMN_WIDTH } from './scoreTableConstants';
 
 import { AppCard } from '../ui/AppCard';
 import { PlayerNameCell } from './PlayerNameCell';
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
 
   score: {
-    minWidth: 110,
+    width: SCORE_TABLE_COLUMN_WIDTH,
     paddingHorizontal: spacing.sm,
     color: colors.textPrimary,
     fontSize: fontSize.md,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
 
   totalScore: {
-    minWidth: 110,
+    width: SCORE_TABLE_COLUMN_WIDTH,
     paddingHorizontal: spacing.sm,
     color: colors.textPrimary,
     fontSize: fontSize.md,

@@ -1,10 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import {
-    colors,
-    fontSize,
-    spacing,
+  colors,
+  fontSize,
+  spacing,
 } from '@/constants/theme';
+
+import { SCORE_TABLE_COLUMN_WIDTH } from './scoreTableConstants';
 
 type PlayerNameCellProps = {
   name: string;
@@ -17,39 +19,53 @@ export function PlayerNameCell({
 }: PlayerNameCellProps) {
   return (
     <View style={styles.container}>
-      <Text
-        numberOfLines={1}
-        style={styles.name}
-      >
-        {name}
-      </Text>
-
-      {isClosingPlayer && (
+      <View style={styles.nameRow}>
         <Text
-          accessibilityLabel="Jugador que cerró la ronda"
-          style={styles.crown}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={styles.name}
         >
-          👑
+          {name}
         </Text>
-      )}
+
+        {isClosingPlayer && (
+          <Text
+            accessibilityLabel="Jugador que cerró la ronda"
+            style={styles.crown}
+          >
+            👑
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    minWidth: 96,
+    width: SCORE_TABLE_COLUMN_WIDTH,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
+
+  nameRow: {
+    maxWidth: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+
   name: {
-    maxWidth: 90,
+    flexShrink: 1,
     color: colors.textPrimary,
     fontSize: fontSize.sm,
     fontWeight: '600',
+    textAlign: 'center',
   },
+
   crown: {
-    marginTop: spacing.xs,
-    fontSize: fontSize.md,
+    fontSize: fontSize.sm,
   },
 });
