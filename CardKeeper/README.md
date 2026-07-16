@@ -205,7 +205,7 @@ Incluyen:
 # Instalación
 
 ```bash
-git clone https://github.com/TU_USUARIO/CardKeeper.git
+git clone https://github.com/pedgomrev/CardKeeper.git
 
 cd CardKeeper
 
