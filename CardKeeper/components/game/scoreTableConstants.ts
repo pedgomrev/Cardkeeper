@@ -1,0 +1,1 @@
+export const SCORE_TABLE_COLUMN_WIDTH = 110;

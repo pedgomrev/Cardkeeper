@@ -1,50 +1,268 @@
-# Welcome to your Expo app 👋
+# 🃏 CardKeeper
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil desarrollada con **React Native + Expo** para gestionar partidas de juegos de cartas, registrar puntuaciones, consultar el historial de partidas y visualizar estadísticas de los jugadores.
 
-## Get started
+Actualmente incluye soporte para los juegos **Continental** y **MauMau (Chinchón)**, con una arquitectura diseñada para facilitar la incorporación de nuevos juegos en el futuro.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## ✨ Características
 
-2. Start the app
+- 🎮 Soporte para múltiples juegos de cartas.
+- 📝 Creación de partidas con número variable de jugadores.
+- ✅ Validación automática de las reglas de cada juego.
+- 📊 Cálculo automático de puntuaciones y clasificación.
+- 💾 Persistencia local mediante AsyncStorage.
+- ▶️ Continuación de partidas en curso.
+- 📚 Historial completo de partidas finalizadas.
+- 📈 Estadísticas agregadas por jugador.
+- 🧩 Arquitectura modular y fácilmente extensible.
+- 🧪 Tests unitarios para la lógica de negocio.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+# Juegos soportados
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Continental
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- 7 rondas con objetivos diferentes.
+- Cálculo automático de cartas repartidas.
+- Bonificación por cierre.
+- Detección automática de Continental.
+- Victoria inmediata al conseguir un Continental en la última ronda.
 
-## Get a fresh project
+## MauMau (Chinchón)
 
-When you're ready, run:
+- Número ilimitado de rondas.
+- Límite de puntuación configurable.
+- Eliminación automática de jugadores.
+- Cierre normal y cierre con escalera completa.
+- Victoria automática cuando solo queda un jugador activo.
 
-```bash
-npm run reset-project
+---
+
+# Tecnologías utilizadas
+
+## Frontend
+
+- React Native
+- Expo
+- Expo Router
+- TypeScript
+
+## Persistencia
+
+- AsyncStorage
+
+## Testing
+
+- Jest
+- jest-expo
+
+## Arquitectura
+
+- Arquitectura basada en dominios.
+- Motores independientes por juego.
+- Componentes reutilizables.
+- Hooks personalizados.
+- Separación entre reglas, puntuación, validación y presentación.
+
+---
+
+# Arquitectura del proyecto
+
+```text
+app/
+├── game/
+├── history/
+├── statistics/
+└── ...
+
+components/
+├── game/
+├── games/
+├── statistics/
+└── ui/
+
+games/
+├── continental/
+│   ├── definition.ts
+│   ├── engine.ts
+│   ├── rules.ts
+│   ├── scoring.ts
+│   └── validation.ts
+│
+├── maumau/
+│   ├── definition.ts
+│   ├── engine.ts
+│   ├── rules.ts
+│   ├── scoring.ts
+│   └── validation.ts
+│
+└── core/
+
+hooks/
+
+models/
+
+services/
+
+storage/
+
+tests/
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+# Arquitectura de los juegos
 
-To learn more about developing your project with Expo, look at the following resources:
+Cada juego implementa de forma independiente:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- **definition.ts**
+  - Información del juego.
+  - Reglas mostradas al usuario.
 
-## Join the community
+- **rules.ts**
+  - Reglas estáticas.
+  - Constantes.
+  - Configuración.
 
-Join our community of developers creating universal apps.
+- **scoring.ts**
+  - Cálculo de puntuaciones.
+  - Ranking.
+  - Ganadores.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **validation.ts**
+  - Validación de rondas.
+  - Validación de reglas.
+
+- **engine.ts**
+  - Implementación del GameEngine.
+  - Punto de entrada para el juego.
+
+Gracias a esta estructura, añadir un nuevo juego únicamente requiere implementar estos cinco archivos y registrarlo en el `GameRegistry`.
+
+---
+
+# Funcionalidades
+
+## Nueva partida
+
+- Selección del juego.
+- Configuración específica.
+- Gestión dinámica de jugadores.
+- Visualización de reglas.
+
+---
+
+## Durante la partida
+
+- Registro de puntuaciones.
+- Selección del jugador que cierra.
+- Validaciones automáticas.
+- Clasificación en tiempo real.
+- Historial de rondas.
+
+---
+
+## Historial
+
+- Partidas guardadas.
+- Consulta del detalle completo.
+- Clasificación final.
+- Todas las rondas registradas.
+
+---
+
+## Estadísticas
+
+A partir del historial de partidas se calculan automáticamente:
+
+- Partidas jugadas.
+- Partidas finalizadas.
+- Victorias.
+- Porcentaje de victorias.
+- Puntuación media.
+- Continentales conseguidos.
+- Estadísticas por juego.
+
+---
+
+# Tests
+
+La lógica de negocio está cubierta mediante pruebas unitarias con Jest.
+
+Incluyen:
+
+- cálculo de puntuaciones
+- ranking
+- validaciones
+- reglas de juego
+- servicios
+
+---
+
+# Instalación
+
+```bash
+git clone https://github.com/pedgomrev/CardKeeper.git
+
+cd CardKeeper
+
+npm install
+
+npx expo start
+```
+
+---
+
+# Scripts
+
+```bash
+npm start
+
+npm test
+
+npx tsc --noEmit
+
+npx expo-doctor
+```
+
+---
+
+# Capturas
+
+> Próximamente.
+
+Se añadirán capturas de pantalla de:
+
+- Pantalla principal.
+- Creación de partida.
+- Partida de Continental.
+- Partida de MauMau.
+- Historial.
+- Estadísticas.
+
+---
+
+# Mejoras futuras
+
+- Publicación en Google Play.
+- Exportación e importación de partidas.
+- Sincronización en la nube.
+- Perfiles de jugadores.
+- Más juegos de cartas.
+- Animaciones.
+- Temas personalizables.
+
+---
+
+# Autor
+
+**Pedro Gómez Revilla**
+
+- Grado en Ingeniería Informática
+- Máster en Ciencia de Datos e Inteligencia Artificial
+
+GitHub:
+https://github.com/pedgomrev
